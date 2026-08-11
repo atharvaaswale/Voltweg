@@ -1,0 +1,6 @@
+{
+  "name": "Voltweg",
+  "description": "Voltweg EV Charging Station Map & Search native Compose UI prototype.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

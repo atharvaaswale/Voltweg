@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Centered bold lightning bolt EV charging symbol -->
+    <path
+        android:fillColor="#C5EADF"
+        android:pathData="M57,28 L37,56 L51,56 L47,80 L71,50 L57,50 Z" />
+</vector>
