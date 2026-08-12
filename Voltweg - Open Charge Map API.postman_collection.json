@@ -1,0 +1,265 @@
+{
+  "info": {
+    "_postman_id": "f4088b94-8261-43e4-9454-d16f98cb0904",
+    "name": "Voltweg - Open Charge Map API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28667992"
+  },
+  "item": [
+    {
+      "name": "GET Nearby Charging Stations (POI)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "User-Agent",
+            "value": "Voltweg",
+            "type": "text"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "YOUR_API_KEY_HERE",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://api.openchargemap.io/v3/poi/?output=json&latitude=50.14601132927153&longitude=8.664359484383027&distance=10&distanceunit=KM&maxresults=10&compact=true&verbose=false",
+          "protocol": "https",
+          "host": [
+            "api",
+            "openchargemap",
+            "io"
+          ],
+          "path": [
+            "v3",
+            "poi",
+            ""
+          ],
+          "query": [
+            {
+              "key": "output",
+              "value": "json"
+            },
+            {
+              "key": "latitude",
+              "value": "50.14601132927153"
+            },
+            {
+              "key": "longitude",
+              "value": "8.664359484383027"
+            },
+            {
+              "key": "distance",
+              "value": "10"
+            },
+            {
+              "key": "distanceunit",
+              "value": "KM"
+            },
+            {
+              "key": "maxresults",
+              "value": "10"
+            },
+            {
+              "key": "compact",
+              "value": "true"
+            },
+            {
+              "key": "verbose",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Stations by Bounding Box (Map)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "User-Agent",
+            "value": "Voltweg",
+            "type": "text"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "YOUR_API_KEY_HERE",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://api.openchargemap.io/v3/poi/?output=json&boundingbox=(52.48,13.30),(52.55,13.45)&maxresults=50&compact=true&verbose=false",
+          "protocol": "https",
+          "host": [
+            "api",
+            "openchargemap",
+            "io"
+          ],
+          "path": [
+            "v3",
+            "poi",
+            ""
+          ],
+          "query": [
+            {
+              "key": "output",
+              "value": "json"
+            },
+            {
+              "key": "boundingbox",
+              "value": "(52.48,13.30),(52.55,13.45)"
+            },
+            {
+              "key": "maxresults",
+              "value": "50"
+            },
+            {
+              "key": "compact",
+              "value": "true"
+            },
+            {
+              "key": "verbose",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Core Reference Data (Filters)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "User-Agent",
+            "value": "Volweg",
+            "type": "text"
+          },
+          {
+            "key": "x-api-key",
+            "value": "YOUR_API_KEY_HERE",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://api.openchargemap.io/v3/referencedata/",
+          "protocol": "https",
+          "host": [
+            "api",
+            "openchargemap",
+            "io"
+          ],
+          "path": [
+            "v3",
+            "referencedata",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Search Location (Geocoding)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "User-Agent",
+            "value": "Voltweg",
+            "type": "text"
+          },
+          {
+            "key": "x-api-key",
+            "value": "YOUR_API_KEY_HERE",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://nominatim.openstreetmap.org/search?q=Berlin&format=json&limit=5&addressdetails=1",
+          "protocol": "https",
+          "host": [
+            "nominatim",
+            "openstreetmap",
+            "org"
+          ],
+          "path": [
+            "search"
+          ],
+          "query": [
+            {
+              "key": "q",
+              "value": "Berlin"
+            },
+            {
+              "key": "format",
+              "value": "json"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            },
+            {
+              "key": "addressdetails",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Station Details by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "User-Agent",
+            "value": "Voltweg",
+            "type": "text"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "YOUR_API_KEY_HERE",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://api.openchargemap.io/v3/poi/?output=json&chargepointid=47535&compact=false&verbose=true",
+          "protocol": "https",
+          "host": [
+            "api",
+            "openchargemap",
+            "io"
+          ],
+          "path": [
+            "v3",
+            "poi",
+            ""
+          ],
+          "query": [
+            {
+              "key": "output",
+              "value": "json"
+            },
+            {
+              "key": "chargepointid",
+              "value": "47535"
+            },
+            {
+              "key": "compact",
+              "value": "false"
+            },
+            {
+              "key": "verbose",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
