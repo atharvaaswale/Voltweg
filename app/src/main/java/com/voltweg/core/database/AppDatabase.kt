@@ -4,17 +4,20 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.voltweg.core.database.dao.SearchHistoryDao
 import com.voltweg.core.database.dao.StationDao
+import com.voltweg.core.database.entity.SearchHistoryEntity
 import com.voltweg.core.database.entity.StationEntity
 
 @Database(
-    entities = [StationEntity::class],
-    version = 1,
+    entities = [StationEntity::class, SearchHistoryEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun stationDao(): StationDao
+    abstract fun searchHistoryDao(): SearchHistoryDao
 
     companion object {
         @Volatile
@@ -26,7 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "voltweg.db"
-                ).build().also { instance = it }
+                ).fallbackToDestructiveMigration().build().also { instance = it }
             }
     }
 }

@@ -19,7 +19,7 @@ import com.voltweg.ui.screens.explore.ExploreScreen
 import com.voltweg.ui.screens.FavoritesScreen
 import com.voltweg.ui.screens.LocationPermissionScreen
 import com.voltweg.ui.screens.MapScreen
-import com.voltweg.ui.screens.SearchFilterScreen
+import com.voltweg.ui.screens.search.SearchFilterScreen
 import com.voltweg.ui.screens.StationDetailsScreen
 
 @Composable
@@ -53,26 +53,13 @@ fun VoltwegApp(
 
         ActiveScreen.SEARCH_FILTERS -> {
             SearchFilterScreen(
-                searchQuery = uiState.searchQuery,
-                recentSearches = uiState.recentSearches,
-                stations = uiState.filteredStations,
-                selectedConnectors = uiState.selectedConnectors,
-                selectedSpeed = uiState.selectedSpeed,
-                selectedMaxDistanceKm = uiState.selectedMaxDistanceKm,
-                isFilterSheetOpen = uiState.isFilterSheetOpen,
-                onSearchQueryChange = { viewModel.updateSearchQuery(it) },
-                onRecentSearchSelect = {
-                    viewModel.updateSearchQuery(it)
-                },
+                onBackClick = { viewModel.navigateBack() },
                 onStationSelect = { stationId ->
                     viewModel.openStationDetails(stationId)
                 },
-                onToggleFilterSheet = { viewModel.toggleFilterSheet(it) },
-                onToggleConnector = { viewModel.toggleConnectorFilter(it) },
-                onSelectSpeed = { viewModel.setSpeedFilter(it) },
-                onSelectDistance = { viewModel.setDistanceFilter(it) },
-                onClearAllFilters = { viewModel.clearAllFilters() },
-                onBackClick = { viewModel.navigateBack() },
+                onLocationSelect = { _, _, _ ->
+                    viewModel.navigateBack()
+                },
                 modifier = modifier
             )
         }

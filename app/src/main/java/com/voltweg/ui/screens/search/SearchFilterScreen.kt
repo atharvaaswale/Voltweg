@@ -1,4 +1,4 @@
-package com.voltweg.ui.screens
+package com.voltweg.ui.screens.search
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -22,25 +22,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.NorthWest
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.NorthWest
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -52,17 +53,29 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.voltweg.data.ChargerSpeedCategory
 import com.voltweg.data.ChargerStatus
 import com.voltweg.data.ChargingStation
 import com.voltweg.data.ConnectorType
+import com.voltweg.data.MockData
 import com.voltweg.ui.theme.VoltwegOnPrimary
 import com.voltweg.ui.theme.VoltwegOnSecondaryContainer
 import com.voltweg.ui.theme.VoltwegPrimary
@@ -70,27 +83,50 @@ import com.voltweg.ui.theme.VoltwegSecondaryContainer
 import com.voltweg.ui.theme.VoltwegSurfaceContainer
 import com.voltweg.ui.theme.VoltwegSurfaceContainerLow
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SearchFilterScreen(
-    searchQuery: String,
-    recentSearches: List<String>,
-    stations: List<ChargingStation>,
-    selectedConnectors: Set<ConnectorType>,
-    selectedSpeed: ChargerSpeedCategory,
-    selectedMaxDistanceKm: Double,
-    isFilterSheetOpen: Boolean,
-    onSearchQueryChange: (String) -> Unit,
-    onRecentSearchSelect: (String) -> Unit,
-    onStationSelect: (String) -> Unit,
-    onToggleFilterSheet: (Boolean) -> Unit,
-    onToggleConnector: (ConnectorType) -> Unit,
-    onSelectSpeed: (ChargerSpeedCategory) -> Unit,
-    onSelectDistance: (Double) -> Unit,
-    onClearAllFilters: () -> Unit,
+    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory),
     onBackClick: () -> Unit,
+    onStationSelect: (String) -> Unit,
+    onLocationSelect: (Double, Double, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel) {
+        viewModel.sideEffects.collect { effect ->
+            when (effect) {
+                is SearchSideEffect.NavigateToExploreWithLocation -> {
+                    onLocationSelect(effect.lat, effect.lng, effect.name)
+                }
+            }
+        }
+    }
+
+    SearchFilterScreenContent(
+        state = uiState,
+        onEvent = viewModel::onEvent,
+        onBackClick = onBackClick,
+        onStationSelect = onStationSelect,
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SearchFilterScreenContent(
+    state: SearchUiState,
+    onEvent: (SearchUiEvent) -> Unit,
+    onBackClick: () -> Unit,
+    onStationSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -123,9 +159,15 @@ fun SearchFilterScreen(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    placeholder = { Text("Search location or station...") },
+                    value = state.query,
+                    onValueChange = { onEvent(SearchUiEvent.OnQueryChanged(it)) },
+                    placeholder = {
+                        Text(
+                            text = "Search location...",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Filled.Search,
@@ -134,8 +176,14 @@ fun SearchFilterScreen(
                         )
                     },
                     trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
+                        if (state.isSearching) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = VoltwegPrimary
+                            )
+                        } else if (state.query.isNotEmpty()) {
+                            IconButton(onClick = { onEvent(SearchUiEvent.OnQueryChanged("")) }) {
                                 Icon(
                                     imageVector = Icons.Filled.Close,
                                     contentDescription = "Clear",
@@ -160,6 +208,7 @@ fun SearchFilterScreen(
                     ),
                     modifier = Modifier
                         .weight(1f)
+                        .focusRequester(focusRequester)
                         .testTag("search_text_input")
                 )
             }
@@ -170,52 +219,94 @@ fun SearchFilterScreen(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                if (searchQuery.isEmpty()) {
-                    // Recent Searches
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (state.query.isNotEmpty()) {
+                    // Search Mode: loading / suggestions / empty state
+                    if (state.isSearching) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 2.5.dp,
+                                    color = VoltwegPrimary
+                                )
+                            }
+                        }
+                    } else if (state.suggestions.isNotEmpty()) {
+                        item {
                             Text(
-                                text = "RECENT SEARCHES",
+                                text = "SUGGESTIONS",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                        items(state.suggestions) { suggestion ->
+                            LocationSuggestionItem(
+                                suggestion = suggestion,
+                                onClick = {
+                                    onEvent(
+                                        SearchUiEvent.OnLocationSelected(
+                                            lat = suggestion.lat.toDouble(),
+                                            lng = suggestion.lon.toDouble(),
+                                            name = suggestion.name
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    } else {
+                        item {
+                            Text(
+                                text = "No locations found",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 24.dp)
+                            )
+                        }
+                    }
+                } else {
+                    // Browse Mode (query empty): recent searches, popular stations, nearby list
+                    // Recent Searches
+                    if (state.recentSearches.isNotEmpty()) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "RECENT SEARCHES",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                TextButton(onClick = { onEvent(SearchUiEvent.OnClearRecentSearches) }) {
+                                    Text("Clear all", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
 
-                            recentSearches.forEach { search ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable { onRecentSearchSelect(search) }
-                                        .padding(horizontal = 12.dp, vertical = 12.dp)
-                                        .testTag("recent_search_item_$search"),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Filled.History,
-                                            contentDescription = "Recent",
-                                            tint = MaterialTheme.colorScheme.outlineVariant
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            text = search,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    Icon(
-                                        imageVector = Icons.Filled.NorthWest,
-                                        contentDescription = "Select",
-                                        tint = MaterialTheme.colorScheme.outlineVariant
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                state.recentSearches.forEach { search ->
+                                    RecentSearchItem(
+                                        query = search,
+                                        onClick = { onEvent(SearchUiEvent.OnQueryChanged(search)) }
                                     )
                                 }
                             }
                         }
                     }
 
-                    // Popular Stations Bento Grid
+                    // Popular Stations
                     item {
+                        val popularStations = if (state.searchResults.isNotEmpty()) {
+                            state.searchResults.take(4)
+                        } else {
+                            MockData.sampleStations.take(4)
+                        }
+
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
                                 text = "POPULAR STATIONS",
@@ -223,86 +314,72 @@ fun SearchFilterScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                PopularStationCard(
-                                    title = "Alexanderplatz",
-                                    subtitle = "4 Connectors available",
-                                    tag = "Fast",
-                                    onClick = { onStationSelect("alexanderplatz_hub") },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                PopularStationCard(
-                                    title = "Olympiapark",
-                                    subtitle = "2 Connectors available",
-                                    tag = "Ultra",
-                                    onClick = { onStationSelect("olympiapark") },
-                                    modifier = Modifier.weight(1f)
-                                )
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                items(popularStations, key = { it.id }) { station ->
+                                    PopularStationCard(
+                                        station = station,
+                                        onClick = { onStationSelect(station.id) }
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                // Controls & Search Results header
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        Column {
-                            Text(
-                                text = if (searchQuery.isEmpty()) "Charging stations near Berlin" else "Search results for \"$searchQuery\"",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "${stations.size} stations found",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Surface(
-                            onClick = { onToggleFilterSheet(true) },
-                            shape = CircleShape,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant
-                            ),
-                            color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.testTag("open_filters_button")
+                    // Charging Stations Near You header + Filter Chip
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Tune,
-                                    contentDescription = "Filter",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Filter",
+                                    text = "CHARGING STATIONS NEAR YOU",
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Text(
+                                    text = "${state.searchResults.size} stations found",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
+
+                            FilterChip(
+                                selected = state.isFilterSheetOpen,
+                                onClick = { onEvent(SearchUiEvent.OnToggleFilterSheet(true)) },
+                                label = { Text("Filter") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.Tune,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = state.isFilterSheetOpen,
+                                    borderColor = MaterialTheme.colorScheme.outlineVariant
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.testTag("open_filters_button")
+                            )
                         }
                     }
-                }
 
-                // Station Cards List
-                items(stations, key = { it.id }) { station ->
-                    SearchResultStationCard(
-                        station = station,
-                        onClick = { onStationSelect(station.id) }
-                    )
+                    // Initial Station List
+                    if (state.searchResults.isNotEmpty()) {
+                        items(state.searchResults) { station ->
+                            SearchResultStationCard(
+                                station = station,
+                                onClick = { onStationSelect(station.id) }
+                            )
+                        }
+                    }
                 }
 
                 item {
@@ -313,7 +390,7 @@ fun SearchFilterScreen(
 
         // Filters Bottom Sheet
         AnimatedVisibility(
-            visible = isFilterSheetOpen,
+            visible = state.isFilterSheetOpen,
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it }),
             modifier = Modifier.align(Alignment.BottomCenter)
@@ -353,7 +430,7 @@ fun SearchFilterScreen(
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        IconButton(onClick = { onToggleFilterSheet(false) }) {
+                        IconButton(onClick = { onEvent(SearchUiEvent.OnToggleFilterSheet(false)) }) {
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = "Close",
@@ -376,10 +453,10 @@ fun SearchFilterScreen(
 
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ConnectorType.entries.forEach { connector ->
-                                    val isSelected = connector in selectedConnectors
+                                    val isSelected = connector in state.selectedConnectors
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = { onToggleConnector(connector) },
+                                        onClick = { onEvent(SearchUiEvent.OnToggleConnector(connector)) },
                                         label = { Text(connector.displayName) },
                                         shape = CircleShape,
                                         colors = FilterChipDefaults.filterChipColors(
@@ -408,13 +485,13 @@ fun SearchFilterScreen(
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
                                 ChargerSpeedCategory.entries.forEach { speed ->
-                                    val isSelected = selectedSpeed == speed
+                                    val isSelected = state.selectedSpeed == speed
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
                                             .clip(RoundedCornerShape(6.dp))
                                             .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
-                                            .clickable { onSelectSpeed(speed) }
+                                            .clickable { onEvent(SearchUiEvent.OnSelectSpeed(speed)) }
                                             .padding(vertical = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -441,11 +518,11 @@ fun SearchFilterScreen(
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
                                 listOf(1.0, 5.0, 10.0).forEach { dist ->
-                                    val isSelected = selectedMaxDistanceKm == dist
+                                    val isSelected = state.selectedMaxDistanceKm == dist
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .clickable { onSelectDistance(dist) }
+                                            .clickable { onEvent(SearchUiEvent.OnSelectDistance(dist)) }
                                             .padding(vertical = 12.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -471,7 +548,7 @@ fun SearchFilterScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(
-                            onClick = onClearAllFilters,
+                            onClick = { onEvent(SearchUiEvent.OnClearAllFilters) },
                             modifier = Modifier.testTag("clear_filters_button")
                         ) {
                             Text(
@@ -482,7 +559,7 @@ fun SearchFilterScreen(
                         }
 
                         Button(
-                            onClick = { onToggleFilterSheet(false) },
+                            onClick = { onEvent(SearchUiEvent.OnToggleFilterSheet(false)) },
                             shape = CircleShape,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = VoltwegPrimary,
@@ -506,10 +583,81 @@ fun SearchFilterScreen(
 }
 
 @Composable
+private fun LocationSuggestionItem(
+    suggestion: com.voltweg.core.network.model.GeocodingResponseDto.GeocodingResponseDtoItem,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.LocationOn,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = suggestion.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = suggestion.displayName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecentSearchItem(
+    query: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.History,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outlineVariant
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = query,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        Icon(
+            imageVector = Icons.Filled.NorthWest,
+            contentDescription = "Select",
+            tint = MaterialTheme.colorScheme.outlineVariant,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+@Composable
 private fun PopularStationCard(
-    title: String,
-    subtitle: String,
-    tag: String,
+    station: ChargingStation,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -522,8 +670,9 @@ private fun PopularStationCard(
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         modifier = modifier
+            .width(220.dp)
             .height(130.dp)
-            .testTag("popular_card_$title")
+            .testTag("popular_card_${station.id}")
     ) {
         Column(
             modifier = Modifier
@@ -536,11 +685,22 @@ private fun PopularStationCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Icon(
-                    imageVector = Icons.Filled.EvStation,
-                    contentDescription = title,
-                    tint = VoltwegPrimary
-                )
+                if (station.imageUrl != null) {
+                    AsyncImage(
+                        model = station.imageUrl,
+                        contentDescription = station.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(36.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.EvStation,
+                        contentDescription = station.name,
+                        tint = VoltwegPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
@@ -549,7 +709,7 @@ private fun PopularStationCard(
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = tag,
+                        text = station.speedCategory.displayName,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -558,14 +718,18 @@ private fun PopularStationCard(
 
             Column {
                 Text(
-                    text = title,
+                    text = station.name,
                     style = MaterialTheme.typography.headlineMedium.copy(fontSize = 16.sp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = subtitle,
+                    text = "${station.availableConnectors}/${station.totalConnectors} connectors available",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -600,10 +764,10 @@ private fun SearchResultStationCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (station.imageUrl != null) {
-                    coil.compose.AsyncImage(
+                    AsyncImage(
                         model = station.imageUrl,
                         contentDescription = station.name,
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
@@ -650,7 +814,9 @@ private fun SearchResultStationCard(
                         text = station.name,
                         style = MaterialTheme.typography.headlineMedium.copy(fontSize = 16.sp),
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Icon(
                         imageVector = Icons.Filled.BookmarkBorder,
@@ -672,7 +838,9 @@ private fun SearchResultStationCard(
                     Text(
                         text = "${station.address.split(",").firstOrNull()} • ${station.distanceKm} km",
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 

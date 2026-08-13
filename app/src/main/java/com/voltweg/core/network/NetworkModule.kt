@@ -48,4 +48,16 @@ object NetworkModule {
     val openChargeMapApi: OpenChargeMapApi by lazy {
         retrofit.create(OpenChargeMapApi::class.java)
     }
+
+    val nominatimRetrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://nominatim.openstreetmap.org/")
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+
+    val nominatimApi: NominatimApi by lazy {
+        nominatimRetrofit.create(NominatimApi::class.java)
+    }
 }
