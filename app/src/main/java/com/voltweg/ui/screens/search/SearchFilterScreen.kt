@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.voltweg.core.network.model.GeocodingItemDto
 import com.voltweg.data.ChargerSpeedCategory
 import com.voltweg.data.ChargerStatus
 import com.voltweg.data.ChargingStation
@@ -178,7 +179,9 @@ private fun SearchFilterScreenContent(
                     trailingIcon = {
                         if (state.isSearching) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .testTag("search_inline_loading"),
                                 strokeWidth = 2.dp,
                                 color = VoltwegPrimary
                             )
@@ -219,19 +222,21 @@ private fun SearchFilterScreenContent(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                if (state.query.isNotEmpty()) {
+                if (state.query.isNotBlank()) {
                     // Search Mode: loading / suggestions / empty state
                     if (state.isSearching) {
                         item {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 32.dp),
+                                    .padding(vertical = 48.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(28.dp),
-                                    strokeWidth = 2.5.dp,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .testTag("search_progress_indicator"),
+                                    strokeWidth = 3.dp,
                                     color = VoltwegPrimary
                                 )
                             }
@@ -248,11 +253,16 @@ private fun SearchFilterScreenContent(
                             LocationSuggestionItem(
                                 suggestion = suggestion,
                                 onClick = {
+                                    val lat = suggestion.lat?.toDoubleOrNull() ?: SearchViewModel.DEFAULT_LAT
+                                    val lng = suggestion.lon?.toDoubleOrNull() ?: SearchViewModel.DEFAULT_LNG
+                                    val name = suggestion.name
+                                        ?: suggestion.displayName?.split(",")?.firstOrNull()
+                                        ?: "Selected Location"
                                     onEvent(
                                         SearchUiEvent.OnLocationSelected(
-                                            lat = suggestion.lat.toDouble(),
-                                            lng = suggestion.lon.toDouble(),
-                                            name = suggestion.name
+                                            lat = lat,
+                                            lng = lng,
+                                            name = name
                                         )
                                     )
                                 }
@@ -260,12 +270,32 @@ private fun SearchFilterScreenContent(
                         }
                     } else {
                         item {
-                            Text(
-                                text = "No locations found",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 24.dp)
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 36.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "No locations found for \"${state.query}\"",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Try checking the spelling or searching for a city name",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
                         }
                     }
                 } else {
@@ -584,9 +614,13 @@ private fun SearchFilterScreenContent(
 
 @Composable
 private fun LocationSuggestionItem(
-    suggestion: com.voltweg.core.network.model.GeocodingResponseDto.GeocodingResponseDtoItem,
+    suggestion: GeocodingItemDto,
     onClick: () -> Unit
 ) {
+    val title = suggestion.name
+        ?: suggestion.displayName?.split(",")?.firstOrNull()
+        ?: "Location"
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -604,17 +638,19 @@ private fun LocationSuggestionItem(
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(
-                text = suggestion.name,
+                text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Text(
-                text = suggestion.displayName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            suggestion.displayName?.let { display ->
+                Text(
+                    text = display,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

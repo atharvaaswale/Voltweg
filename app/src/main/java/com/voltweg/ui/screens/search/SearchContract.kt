@@ -1,13 +1,13 @@
 package com.voltweg.ui.screens.search
 
-import com.voltweg.core.network.model.GeocodingResponseDto
+import com.voltweg.core.network.model.GeocodingItemDto
 import com.voltweg.data.ChargerSpeedCategory
 import com.voltweg.data.ChargingStation
 import com.voltweg.data.ConnectorType
 
 data class SearchUiState(
     val query: String = "",
-    val suggestions: List<GeocodingResponseDto.GeocodingResponseDtoItem> = emptyList(),
+    val suggestions: List<GeocodingItemDto> = emptyList(),
     val recentSearches: List<String> = emptyList(),
     val isSearching: Boolean = false,
     val searchResults: List<ChargingStation> = emptyList(),

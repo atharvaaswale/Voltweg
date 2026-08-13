@@ -1,5 +1,6 @@
 package com.voltweg.ui.screens.search
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -47,8 +48,9 @@ class SearchViewModel(
             .debounce(300)
             .distinctUntilChanged()
             .onEach { query ->
-                if (query.length >= 2) {
-                    fetchSuggestions(query)
+                val trimmed = query.trim()
+                if (trimmed.isNotEmpty()) {
+                    fetchSuggestions(trimmed)
                 } else {
                     _uiState.update { it.copy(suggestions = emptyList(), isSearching = false) }
                 }
@@ -68,8 +70,15 @@ class SearchViewModel(
     fun onEvent(event: SearchUiEvent) {
         when (event) {
             is SearchUiEvent.OnQueryChanged -> {
-                _uiState.update { it.copy(query = event.query) }
-                _queryFlow.value = event.query
+                val newQuery = event.query
+                _uiState.update {
+                    it.copy(
+                        query = newQuery,
+                        isSearching = newQuery.isNotBlank(),
+                        suggestions = if (newQuery.isBlank()) emptyList() else it.suggestions
+                    )
+                }
+                _queryFlow.value = newQuery
             }
             is SearchUiEvent.OnLocationSelected -> {
                 saveToHistory(event.name)
@@ -117,10 +126,11 @@ class SearchViewModel(
         _uiState.update { it.copy(isSearching = true) }
         viewModelScope.launch {
             try {
-                val response = nominatimApi.searchLocation(query)
+                val response = nominatimApi.searchLocation(query = query)
                 _uiState.update { it.copy(suggestions = response, isSearching = false) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isSearching = false) }
+                Log.e("SearchDebug", "Geocoding error", e)
+                _uiState.update { it.copy(suggestions = emptyList(), isSearching = false) }
             }
         }
     }
@@ -140,8 +150,8 @@ class SearchViewModel(
     }
 
     companion object {
-        private const val DEFAULT_LAT = 52.5200
-        private const val DEFAULT_LNG = 13.4050
+        const val DEFAULT_LAT = 52.5200
+        const val DEFAULT_LNG = 13.4050
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -159,3 +169,5 @@ class SearchViewModel(
         }
     }
 }
+
+typealias SearchFilterViewModel = SearchViewModel
