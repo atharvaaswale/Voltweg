@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import com.voltweg.data.ChargerSpeedCategory
 import com.voltweg.data.ChargingStation
 import com.voltweg.data.ConnectorType
-import com.voltweg.data.MockData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,16 +26,16 @@ enum class ActiveScreen {
 data class VoltwegUiState(
     val currentTab: VoltwegTab = VoltwegTab.EXPLORE,
     val currentScreen: ActiveScreen = ActiveScreen.MAIN_TABS,
-    val stations: List<ChargingStation> = MockData.sampleStations,
-    val selectedStationId: String = "alexanderplatz_hub",
+    val stations: List<ChargingStation> = emptyList(),
+    val selectedStationId: String = "",
     val searchQuery: String = "",
-    val recentSearches: List<String> = MockData.recentSearches,
+    val recentSearches: List<String> = emptyList(),
     val isFilterSheetOpen: Boolean = false,
     val selectedConnectors: Set<ConnectorType> = setOf(ConnectorType.CCS2, ConnectorType.TYPE2),
     val selectedSpeed: ChargerSpeedCategory = ChargerSpeedCategory.FAST,
     val selectedMaxDistanceKm: Double = 5.0,
     val isOffline: Boolean = false,
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val isLocationGranted: Boolean = true
 ) {
     val selectedStation: ChargingStation?

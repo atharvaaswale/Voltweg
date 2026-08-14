@@ -37,6 +37,22 @@ object NetworkModule {
             .build()
     }
 
+    private val nominatimOkHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", "VoltwegApp/1.0 (Android Mobile App)")
+                    .build()
+                chain.proceed(request)
+            }
+            .addInterceptor(
+                HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+            )
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
     val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://api.openchargemap.io/v3/")
@@ -52,7 +68,7 @@ object NetworkModule {
     val nominatimRetrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://nominatim.openstreetmap.org/")
-            .client(okHttpClient)
+            .client(nominatimOkHttpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }

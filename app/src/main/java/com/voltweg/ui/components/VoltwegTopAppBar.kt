@@ -1,16 +1,12 @@
 package com.voltweg.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,26 +25,23 @@ import com.voltweg.ui.theme.VoltwegPrimary
 fun VoltwegTopAppBar(
     title: String = "Voltweg",
     showBackButton: Boolean = false,
-    showMenuButton: Boolean = false,
-    isFavorite: Boolean = false,
     onBackClick: () -> Unit = {},
-    onMenuClick: () -> Unit = {},
-    onFavoriteClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        contentAlignment = Alignment.Center
     ) {
         if (showBackButton) {
             IconButton(
                 onClick = onBackClick,
-                modifier = Modifier.testTag("top_bar_back_button")
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .testTag("top_bar_back_button")
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -56,20 +49,6 @@ fun VoltwegTopAppBar(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else if (showMenuButton) {
-            IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.testTag("top_bar_menu_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Menu,
-                    contentDescription = "Menu",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            // Spacer to balance
-            IconButton(onClick = {}, enabled = false) {}
         }
 
         Text(
@@ -83,16 +62,5 @@ fun VoltwegTopAppBar(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.testTag("top_bar_title")
         )
-
-        IconButton(
-            onClick = onFavoriteClick,
-            modifier = Modifier.testTag("top_bar_favorite_button")
-        ) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = "Favorite",
-                tint = if (isFavorite) VoltwegPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }

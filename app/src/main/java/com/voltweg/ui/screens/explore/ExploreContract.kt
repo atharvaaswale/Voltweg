@@ -4,9 +4,9 @@ import com.voltweg.data.ChargingStation
 
 data class ExploreUiState(
     val stations: List<ChargingStation> = emptyList(),
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val isOffline: Boolean = false,
-    val locationName: String = "Berlin, Germany"
+    val locationName: String = ""
 )
 
 sealed interface ExploreUiEvent {

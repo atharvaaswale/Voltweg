@@ -65,9 +65,7 @@ fun StationDetailsScreen(
             VoltwegTopAppBar(
                 title = station.name,
                 showBackButton = true,
-                isFavorite = station.isFavorite,
-                onBackClick = onBackClick,
-                onFavoriteClick = onFavoriteClick
+                onBackClick = onBackClick
             )
         },
         bottomBar = {

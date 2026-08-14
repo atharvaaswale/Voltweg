@@ -22,8 +22,9 @@ class StationRepositoryImpl(
         longitude: Double,
         distanceKm: Double
     ): Flow<StationResult> = flow {
-        // Single source of truth: emit the cached snapshot immediately.
-        emitCached(isOffline = false)
+        // Single source of truth: emit only cached stations that match the
+        // active queried coordinates. Never emit fallback or dummy stations.
+        emitCached(latitude, longitude, distanceKm, isOffline = false)
 
         // Refresh from the network in parallel; upsert on success.
         try {
@@ -36,16 +37,32 @@ class StationRepositoryImpl(
             dao.upsertStations(entities)
             emit(StationResult(entities.map(mapper::toDomain), isOffline = false))
         } catch (_: IOException) {
-            // No network: fall back to the last cached snapshot.
-            emitCached(isOffline = true)
+            // No network: fall back to the last cached snapshot for these coordinates.
+            emitCached(latitude, longitude, distanceKm, isOffline = true)
         } catch (_: HttpException) {
-            // API error: fall back to the last cached snapshot.
-            emitCached(isOffline = true)
+            // API error: fall back to the last cached snapshot for these coordinates.
+            emitCached(latitude, longitude, distanceKm, isOffline = true)
         }
     }.flowOn(Dispatchers.IO)
 
-    private suspend fun FlowCollector<StationResult>.emitCached(isOffline: Boolean) {
+    private suspend fun FlowCollector<StationResult>.emitCached(
+        latitude: Double,
+        longitude: Double,
+        distanceKm: Double,
+        isOffline: Boolean
+    ) {
         val cached = dao.getAllCachedStations().first()
+            .filter { entity -> distanceInKm(latitude, longitude, entity.latitude, entity.longitude) <= distanceKm }
         emit(StationResult(cached.map(mapper::toDomain), isOffline = isOffline))
+    }
+
+    private fun distanceInKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val earthRadiusKm = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     }
 }

@@ -19,7 +19,6 @@ import com.voltweg.ui.screens.explore.ExploreScreen
 import com.voltweg.ui.screens.FavoritesScreen
 import com.voltweg.ui.screens.LocationPermissionScreen
 import com.voltweg.ui.screens.MapScreen
-import com.voltweg.ui.screens.search.SearchFilterScreen
 import com.voltweg.ui.screens.StationDetailsScreen
 
 @Composable
@@ -52,16 +51,7 @@ fun VoltwegApp(
         }
 
         ActiveScreen.SEARCH_FILTERS -> {
-            SearchFilterScreen(
-                onBackClick = { viewModel.navigateBack() },
-                onStationSelect = { stationId ->
-                    viewModel.openStationDetails(stationId)
-                },
-                onLocationSelect = { _, _, _ ->
-                    viewModel.navigateBack()
-                },
-                modifier = modifier
-            )
+            viewModel.navigateBack()
         }
 
         ActiveScreen.LOCATION_PERMISSION -> {
@@ -79,20 +69,9 @@ fun VoltwegApp(
 
         ActiveScreen.MAIN_TABS -> {
             Scaffold(
-                topBar = {
-                    val activeStation = uiState.selectedStation
-                    VoltwegTopAppBar(
-                        title = "Voltweg",
-                        showMenuButton = true,
-                        isFavorite = activeStation?.isFavorite ?: false,
-                        onMenuClick = {
-                            viewModel.openLocationPermissionScreen()
-                        },
-                        onFavoriteClick = {
-                            activeStation?.let { viewModel.toggleFavorite(it.id) }
-                        }
-                    )
-                },
+                /*topBar = {
+                    VoltwegTopAppBar(title = "Voltweg")
+                },*/
                 bottomBar = {
                     VoltwegBottomBar(
                         currentTab = uiState.currentTab,
@@ -110,7 +89,6 @@ fun VoltwegApp(
                     when (tab) {
                         VoltwegTab.EXPLORE -> {
                             ExploreScreen(
-                                onSearchClick = { viewModel.openSearchAndFilters() },
                                 onStationClick = { stationId ->
                                     viewModel.openStationDetails(stationId)
                                 },

@@ -10,10 +10,12 @@ interface OpenChargeMapApi {
     suspend fun getNearbyStations(
         @Query("latitude") latitude: Double,
         @Query("longitude") longitude: Double,
-        @Query("distance") distance: Double = 10.0,
-        @Query("distanceunit") distanceUnit: String = "KM",
+        @Query("distance") distance: Double? = null,
+        @Query("distanceunit") distanceUnit: String? = "KM",
         @Query("maxresults") maxResults: Int = 10,
         @Query("compact") compact: Boolean = true,
-        @Query("verbose") verbose: Boolean = false
+        @Query("verbose") verbose: Boolean = false,
+        @Query("connectiontypeid") connectionTypeId: String? = null,
+        @Query("minpowerkw") minPowerKw: Int? = null
     ): List<StationResponseDtoItem>
 }

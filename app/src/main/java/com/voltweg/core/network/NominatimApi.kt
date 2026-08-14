@@ -7,7 +7,7 @@ import retrofit2.http.Headers
 import retrofit2.http.Query
 
 interface NominatimApi {
-    @Headers("User-Agent: Voltweg/1.0 (Android Mobile App)")
+    @Headers("User-Agent: VoltwegApp/1.0 (Android Mobile App)")
     @GET("search")
     suspend fun searchLocation(
         @Query("q") query: String,
